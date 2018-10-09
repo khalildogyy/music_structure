@@ -7,7 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import librosa.display
 
-filename ='/Users/admin/Desktop/MyDownfall.mp3'
+# filename ='/Users/admin/Desktop/MyDownfall.mp3'
+filename = music_path()
 y, sr = librosa.load(filename,sr=None)
 
 # #瞬时频率
