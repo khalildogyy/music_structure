@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import librosa.display
 
-filename ='/Users/dogyy/Desktop/MyDownfall.mp3'
+filename ='/Users/admin/Desktop/MyDownfall.mp3'
 y, sr = librosa.load(filename,sr=None)
 
 # #瞬时频率
@@ -25,20 +25,16 @@ y, sr = librosa.load(filename,sr=None)
 
 #瞬时功率 onset_strength
 o_env = librosa.onset.onset_strength(y, sr=sr)
+
 times = librosa.frames_to_time(np.arange(len(o_env)), sr=sr)
 onset_frames = librosa.onset.onset_detect(onset_envelope=o_env, sr=sr)
-frames_times = librosa.frames_to_time(onset_frames, sr=sr)
+onset_times = librosa.frames_to_time(onset_frames, sr=sr)
 
-Frames_times = np.append(frames_times,[0])
-Frames_times.sort()
-# print(o_env)
-# print(onset_frames)
-# print(Frames_times)
-
-#音符平均能量 NAE
+frames_times = np.append(onset_times,[0])
+frames_times.sort()
 
 
-# # D = np.abs(librosa.stft(y))
+# D = np.abs(librosa.stft(y))
 plt.figure()
 plt.subplot(1, 1, 1)
 # librosa.display.specshow(librosa.amplitude_to_db(D, ref=np.max),x_axis='time', y_axis='log')

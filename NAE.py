@@ -6,8 +6,10 @@ import librosa
 import numpy as np
 import matplotlib.pyplot as plt
 import librosa.display
+from music_path import music_path
 
-filename ='/Users/admin/Desktop/MyDownfall.mp3'
+# filename ='/Users/admin/Desktop/MyDownfall.mp3'
+filename = music_path()
 y, sr = librosa.load(filename,sr=None)
 
 # #瞬时频率
@@ -27,13 +29,13 @@ y, sr = librosa.load(filename,sr=None)
 o_envs = librosa.onset.onset_strength(y, sr=sr)
 times = librosa.frames_to_time(np.arange(len(o_envs)), sr=sr)
 onset_frames = librosa.onset.onset_detect(onset_envelope=o_envs, sr=sr)
-Frames_times = librosa.frames_to_time(onset_frames, sr=sr)
-print(onset_frames)
-print(Frames_times)
+onset_times = librosa.frames_to_time(onset_frames, sr=sr)
+# print(onset_frames)
+# print(onset_times)
 
 # dict(map(lambda x,y:[x,y], times, o_envs))
 
-frames_times = np.append(Frames_times,[0])
+frames_times = np.append(onset_times,[0])
 frames_times = np.append(frames_times,times[-1])
 frames_times.sort()
 print(frames_times)
@@ -73,7 +75,7 @@ NAE.append(o_envs[-1])
 NAE = np.array(NAE)
 
 # print(NAE)
-
+# print(times)
 
 # D = np.abs(librosa.stft(y))
 plt.figure()
