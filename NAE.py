@@ -25,13 +25,15 @@ y, sr = librosa.load(filename,sr=None)
 # print('onset_env length:',len(onset_env))
 # print(onset_env)
 
-#瞬时功率 onset_strength
+#瞬时强度
 o_envs = librosa.onset.onset_strength(y, sr=sr)
 times = librosa.frames_to_time(np.arange(len(o_envs)), sr=sr)
+
+#按键强度
 onset_frames = librosa.onset.onset_detect(onset_envelope=o_envs, sr=sr)
 onset_times = librosa.frames_to_time(onset_frames, sr=sr)
-# print(onset_frames)
-# print(onset_times)
+print(onset_frames)
+print(onset_times)
 
 # dict(map(lambda x,y:[x,y], times, o_envs))
 
