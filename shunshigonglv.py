@@ -32,7 +32,7 @@ s, sr = librosa.load(filename,sr=None,duration=10)
 # print('s:',s)
 
 #低通滤波：使⽤截止频率为3kHz的50阶低通滤波器进⾏平滑处理
-order = 24
+order = 6
 fs = sr       # sample rate, Hz
 cutoff = 3000  # desired cutoff frequency of the filter, Hz
 
@@ -41,7 +41,7 @@ b, a = butter_lowpass(cutoff, fs, order)
 
 # Plot the frequency response.
 w, h = freqz(b, a, worN=8000)
-plt.subplot(3, 1, 1)
+plt.subplot(5, 1, 1)
 plt.plot(0.5*fs*w/np.pi, np.abs(h), 'b')
 plt.plot(cutoff, 0.5*np.sqrt(2), 'ko')
 plt.axvline(cutoff, color='k')
@@ -61,7 +61,7 @@ data = s
 # Filter the data, and plot both the original and filtered signals.
 y = butter_lowpass_filter(data, cutoff, fs, order)
 
-plt.subplot(3, 1, 2)
+plt.subplot(5, 1, 2)
 plt.plot(t1, data, 'b-', label='data')
 plt.plot(t1, y, 'g-', linewidth=0.5, label='filtered data')
 plt.xlabel('Time [sec]')
@@ -76,25 +76,31 @@ T = 10.0         # seconds
 n = int(T * (fs/7)) # total number of samples
 t2 = np.linspace(0, T, n, endpoint=False)
 
-index = []
+downsampling = []
 for i in range(0,int(len(y)/7)):
-	index.extend([y[i*7]])
-print(index)
+	downsampling.extend([y[i*7]])
+print(downsampling)
 
-plt.subplot(3, 1, 3)
-plt.plot(t2, index, 'g-', linewidth=1, label='downsampling data')
+plt.subplot(5, 1, 3)
+plt.plot(t2, downsampling, 'g-', linewidth=1, label='downsampling data')
+plt.xlabel('Time [sec]')
+plt.grid()
+plt.legend()
+
+#取平方：信号求平方使幅度包络变为能量包络
+square = []
+for i in range(len(downsampling)):
+	square.extend([downsampling[i]*downsampling[i]])
+print(square)
+
+plt.subplot(5, 1, 4)
+plt.plot(t2, square, 'g-', linewidth=1, label='square data')
 plt.xlabel('Time [sec]')
 plt.grid()
 plt.legend()
 
 plt.subplots_adjust(hspace=0.35)
 plt.show()
-
-
-#取平方：信号求平方使幅度包络变为能量包络
-
-
-
 
 #平滑：最后使⽤3点滑动平均滤波器反复进行平滑，至平滑前后峰值点的个数不再变化
 
