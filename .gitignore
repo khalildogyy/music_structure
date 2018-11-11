@@ -1,0 +1,29 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# C extensions
+*.so
+*.so
+*.o
+
+# other file extensions
+*.xml
+*.csv
+*.pdf
+*.gz
+*.npy
+*.log
+
+# pycharm files
+/.idea
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Jupyter Notebook
+.ipynb_checkpoints
+notebook/.ipynb_checkpoints
