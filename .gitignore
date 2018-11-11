@@ -17,8 +17,13 @@ __pycache__/
 *.npy
 *.log
 
+# music file
+*.mp3
+*.mp4
+
 # pycharm files
 /.idea
+/data
 
 # Flask stuff:
 instance/
