@@ -161,8 +161,19 @@ class RhythmRecognition():
         for i in range(instant_matrix.shape[0]):
             beats.append(instant_matrix[instant_matrix.shape[0]-1-i, i])
 
+        # beats = np.cumsum(beats)
+
+        # plot
+        t = np.linspace(0, 20, len(beats), endpoint=False)
+        fig, ax = plt.subplots(figsize=(6, 5))
+        plt.plot(t, beats, label='Onset strength')
+        plt.axis('tight')
+        plt.legend(frameon=True, framealpha=0.75)
+        plt.show()
+
         return beats
 
 if __name__ == '__main__':
     testrr = RhythmRecognition(filepath='./data/MyDownfall.mp3')
     beats = testrr.rhythmSpectum()
+    print(beats)
