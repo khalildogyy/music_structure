@@ -8,9 +8,8 @@ import matplotlib.pyplot as plt
 import librosa.display
 from music_path import music_path
 
-# filename ='/Users/admin/Desktop/MyDownfall.mp3'
-filename = music_path()
-y, sr = librosa.load(filename,sr=None)
+filename ='./data/MyDownfall.mp3'
+y, sr = librosa.load(filename, sr=None)
 
 # #瞬时频率
 # frequencies, D = librosa.ifgram(y, sr=sr)

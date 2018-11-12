@@ -7,7 +7,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import librosa.display
-from music_path import music_path
 from scipy.signal import butter, lfilter, freqz
 
 def butter_lowpass(cutoff, fs, order=5):
@@ -21,8 +20,7 @@ def butter_lowpass_filter(data, cutoff, fs, order=5):
     y = lfilter(b, a, data)
     return y
 
-# filename ='/Users/admin/Desktop/MyDownfall.mp3'
-filename = music_path()
+filename ='./data/MyDownfall.mp3'
 s, sr = librosa.load(filename,sr=None,duration=10)
 
 # # 每秒采样数
@@ -78,7 +76,7 @@ t2 = np.linspace(0, T, n, endpoint=False)
 
 downsampling = []
 for i in range(0,int(len(y)/7)):
-	downsampling.extend([y[i*7]])
+    downsampling.extend([y[i*7]])
 print(downsampling)
 
 plt.subplot(5, 1, 3)
@@ -90,7 +88,7 @@ plt.legend()
 #取平方：信号求平方使幅度包络变为能量包络
 square = []
 for i in range(len(downsampling)):
-	square.extend([downsampling[i]*downsampling[i]])
+    square.extend([downsampling[i]*downsampling[i]])
 print(square)
 
 plt.subplot(5, 1, 4)
