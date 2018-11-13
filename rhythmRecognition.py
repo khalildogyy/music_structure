@@ -36,12 +36,48 @@ def computeSimilarity(data):
     return similarMatrix
 
 class RhythmRecognition():
-    def __init__(self, filepath, duration=None):
+    def __init__(self, filepath, duration=20):
         self.filepath = filepath
         self.data, self.sr = librosa.load(self.filepath, sr=None, duration=duration)
+        self.T = duration
 
     """ 瞬时功率 """
-    def instantaneousPower(self, order=6, cutoff=3000, downnum=7):
+    def instantaneousPower(self, order=6, cutoff=3000, downnum=7, need_plot=False):
+        # 画出瞬时功率图
+        def plot(fs, T, origindata, filterdata, downsampling, square):
+            # frequency
+            b, a = butter_lowpass(cutoff, fs, order)
+            w, h = freqz(b, a, worN=8000)
+
+            # Plot the frequency response.
+            fig, axes = plt.subplots(4, 1, figsize=(10, 8))
+
+            t1 = np.linspace(0, T, self.data.shape[0], endpoint=False)
+            t2 = np.linspace(0, T, downsampling.shape[0], endpoint=False)
+
+            axes[0].plot(0.5 * fs * w / np.pi, np.abs(h), 'b')
+            axes[0].plot(cutoff, 0.5 * np.sqrt(2), 'ko')
+            axes[0].axvline(cutoff, color='k')
+            axes[0].set_xlim(0, 0.5 * fs)
+            axes[0].set_title("Lowpass Filter Frequency Response")
+            axes[0].set_xlabel('Frequency [Hz]')
+            axes[0].grid()
+            axes[1].plot(t1, origindata, 'b-', label='data')
+            axes[1].plot(t1, filterdata, 'g-', linewidth=0.5, label='filtered data')
+            axes[1].set_xlabel('Time [sec]')
+            axes[1].grid()
+            axes[1].legend()
+            axes[2].plot(t2, downsampling, 'g-', linewidth=1, label='downsampling data')
+            axes[2].set_xlabel('Time [sec]')
+            axes[2].grid()
+            axes[2].legend()
+            axes[3].plot(t2, square, 'g-', linewidth=1, label='square data')
+            axes[3].set_xlabel('Time [sec]')
+            axes[3].grid()
+            axes[3].legend()
+
+            plt.show()
+
         # 低通滤波：使⽤截止频率为3kHz的50阶低通滤波器进⾏平滑处理
         filterdata = butter_lowpass_filter(self.data, cutoff, self.sr, order)
 
@@ -49,48 +85,29 @@ class RhythmRecognition():
         downsampling = filterdata[range(0, filterdata.shape[0], downnum)]
 
         # 取平方：信号求平方使幅度包络变为能量包络
-        o_envs = np.square(downsampling)
+        square = np.square(downsampling)
 
-        # o_envs = librosa.onset.onset_strength(self.data, sr=self.sr)
+        if need_plot:
+            plot(self.sr, self.T, self.data, filterdata, downsampling, square)
 
-        # Plot the frequency response.
-        b, a = butter_lowpass(cutoff, self.sr, order)
-        w, h = freqz(b, a, worN=8000)
-        fig, axes = plt.subplots(4, 1, figsize=(10, 8))
-
-
-        t1 = np.linspace(0, 20, self.data.shape[0], endpoint=False)
-        t2 = np.linspace(0, 20, downsampling.shape[0], endpoint=False)
-
-        axes[0].plot(0.5 * self.sr * w / np.pi, np.abs(h), 'b')
-        axes[0].plot(cutoff, 0.5 * np.sqrt(2), 'ko')
-        axes[0].axvline(cutoff, color='k')
-        axes[0].set_xlim(0, 0.5 * self.sr)
-        axes[0].set_title("Lowpass Filter Frequency Response")
-        axes[0].set_xlabel('Frequency [Hz]')
-        axes[0].grid()
-        axes[1].plot(t1, self.data, 'b-', label='data')
-        axes[1].plot(t1, filterdata, 'g-', linewidth=0.5, label='filtered data')
-        axes[1].set_xlabel('Time [sec]')
-        axes[1].grid()
-        axes[1].legend()
-        axes[2].plot(t2, downsampling, 'g-', linewidth=1, label='downsampling data')
-        axes[2].set_xlabel('Time [sec]')
-        axes[2].grid()
-        axes[2].legend()
-        axes[3].plot(t2, o_envs, 'g-', linewidth=1, label='square data')
-        axes[3].set_xlabel('Time [sec]')
-        axes[3].grid()
-        axes[3].legend()
-
-        plt.show()
-
-        return o_envs
+        return square
 
     """ NAE 信号 """
-    def NAEsignal(self):
+    def NAEsignal(self, need_plot=False):
+        # 画出瞬时功率图
+        def plot(times, nae, onset_frames, T):
+            # plot
+            fig, ax = plt.subplots(figsize=(6, 5))
+            t1 = np.linspace(0, T, nae.shape[0], endpoint=False)
+            plt.plot(t1, nae, label='Onset strength')
+            plt.vlines(times[onset_frames], 0, NAE.max(), color='r', alpha=0.9, linestyle='--', label='Onsets')
+            plt.axis('tight')
+            plt.legend(frameon=True, framealpha=0.75)
+            plt.show()
+
         # 瞬时功率
-        o_envs = self.instantaneousPower()
+        square = self.instantaneousPower()
+        o_envs = librosa.onset.onset_strength(self.data, sr=self.sr)
         times = librosa.frames_to_time(np.arange(o_envs.shape[0]), sr=self.sr)
 
         # 按键强度
@@ -104,9 +121,9 @@ class RhythmRecognition():
         # 平均能量 NAE
         NAE = []
         for i in range(1, len(frames_times)):
-            start = np.where(times == frames_times[i - 1])[0][0]  # 取下标
-            end = np.where(times == frames_times[i])[0][0]
-            temp = o_envs[start:end]  # 存onset_strength
+            start = int(frames_times[i-1] * square.shape[0] / self.T)
+            end = int(frames_times[i] * square.shape[0] / self.T)
+            temp = square[start:end]  # 存onset_strength
             tempnae = []
             for j in range(len(temp)):
                 tempnae.append(np.sum(temp[j:]))
@@ -115,13 +132,8 @@ class RhythmRecognition():
         NAE.append(o_envs[-1])
         NAE = np.array(NAE)
 
-        # plot
-        fig, ax = plt.subplots(figsize=(6, 5))
-        plt.plot(times, NAE, label='Onset strength')
-        plt.vlines(times[onset_frames], 0, NAE.max(), color='r', alpha=0.9, linestyle='--', label='Onsets')
-        plt.axis('tight')
-        plt.legend(frameon=True, framealpha=0.75)
-        plt.show()
+        if need_plot:
+            plot(times, NAE, onset_frames, self.T)
 
         return NAE
 
@@ -134,8 +146,8 @@ class RhythmRecognition():
 
     """ 计算拍谱 """
     def rhythmSpectum(self, frame=40, overlap=0.5):
-        instant = self.instantaneousPower()
-        nae = self.NAEsignal()
+        instant = self.instantaneousPower(need_plot=True)
+        nae = self.NAEsignal(need_plot=True)
         print(instant.shape, nae.shape)
 
         framelength = int(self.sr / (1000 / frame))
@@ -166,7 +178,7 @@ class RhythmRecognition():
         # plot
         t = np.linspace(0, 20, len(beats), endpoint=False)
         fig, ax = plt.subplots(figsize=(6, 5))
-        plt.plot(t, beats, label='Onset strength')
+        plt.plot(t, beats, label='Beat curve')
         plt.axis('tight')
         plt.legend(frameon=True, framealpha=0.75)
         plt.show()
