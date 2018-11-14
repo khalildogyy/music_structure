@@ -10,20 +10,20 @@ import matplotlib.pyplot as plt
 import librosa
 from scipy.signal import butter, lfilter, freqz
 
-def butter_lowpass(cutoff, fs, order=5):
+def butter_lowpass(cutoff, fs, order=5, btype='lowpass'):
     nyq = 0.5 * fs
     normal_cutoff = cutoff / nyq
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    b, a = butter(order, normal_cutoff, btype=btype, analog=False)
     return b, a
 
-def butter_lowpass_filter(data, cutoff, fs, order=5):
-    b, a = butter_lowpass(cutoff, fs, order=order)
+def butter_lowpass_filter(data, cutoff, fs, order=5, btype='lowpass'):
+    b, a = butter_lowpass(cutoff, fs, order=order, btype=btype)
     y = lfilter(b, a, data)
     return y
 
 # 分帧
-def splitFrame(data, fs, frameTime, overlap):
-    framelength = int(fs / (1000 / frameTime))
+def splitFrame(data, T, frameTime, overlap):
+    framelength = int((len(data) / T) / (1000 / frameTime))
     overlength = int(framelength * overlap)
 
     frameindex = []
@@ -62,7 +62,7 @@ class RhythmRecognition():
             # Plot the frequency response.
             fig, axes = plt.subplots(4, 1, figsize=(10, 8))
 
-            t1 = np.linspace(0, T, self.data.shape[0], endpoint=False)
+            t1 = np.linspace(0, T, origindata.shape[0], endpoint=False)
             t2 = np.linspace(0, T, downsampling.shape[0], endpoint=False)
 
             axes[0].plot(0.5 * fs * w / np.pi, np.abs(h), 'b')
@@ -150,11 +150,63 @@ class RhythmRecognition():
         return NAE
 
     """ 重音信号 """
-    def streeSignal(self, frameTime=23, overlap=0.5):
-        framelength = int(self.sr / (1000 / frameTime))
-        overlength = int(framelength * overlap)
+    def streeSignal(self, frameTime=23, overlap=0.5, need_plot=False):
+        # 重音信号图
+        def plot(T, originframes, dft_frames, smooth_frames, weight_frames, stresssignal):
+            fig, axes = plt.subplots(5, 1, figsize=(10, 11))
 
-        return 0
+            t = np.linspace(0, T, originframes.shape[0], endpoint=False)
+
+            axes[0].plot(t, originframes)
+            axes[0].set_title("Origin frames")
+            axes[0].set_xlabel('Time [sec]')
+            axes[1].plot(t, dft_frames)
+            axes[1].set_title("Discrete Fourier Transform")
+            axes[1].set_xlabel('Time [sec]')
+            axes[2].plot(t, smooth_frames)
+            axes[2].set_title("Smooth Signal")
+            axes[2].set_xlabel('Time [sec]')
+            axes[3].plot(t, weight_frames)
+            axes[3].set_title("Weigth Sum")
+            axes[3].set_xlabel('Time [sec]')
+            axes[4].plot(t, stresssignal)
+            axes[4].set_title("Stress Signal")
+            axes[4].set_xlabel('Time [sec]')
+
+            plt.show()
+
+        # 获取帧
+        frames = splitFrame(self.data, self.T, frameTime, overlap)
+
+        # 每一帧离散傅里叶变换
+        frames_dft = np.fft.fft(frames, axis=1)
+
+        # μ率压缩
+        mu = 100
+        frames_mu = np.log(1 + mu * frames_dft) / np.log(1 + mu)
+
+        # 截止频率为10Hz的6阶巴特沃兹滤波器 平滑
+        smooth_frames = butter_lowpass_filter(frames_mu, cutoff=10000, fs=self.sr, order=6)
+
+        # 差分
+        frames_diff = np.diff(smooth_frames, axis=1)
+        # 半波整流
+        frames_halfwave = np.copy(frames_diff)
+        frames_halfwave[frames_halfwave < 0] = 0
+        frames_halfwave = np.concatenate([np.zeros([frames_halfwave.shape[0], 1]), frames_halfwave], axis=1)
+
+        # 获得加权信号
+        lamda = 0.5
+        frames_weight = frames_halfwave + lamda * smooth_frames
+
+        # 获得重音信号
+        stessSignal = np.max(frames_weight, axis=1)
+
+        if need_plot:
+            plot(self.T, frames, frames_dft, smooth_frames, frames_weight, stessSignal)
+
+
+        return stessSignal
 
     """ 计算拍谱 """
     def rhythmSpectum(self, data, frameTime=40, overlap=0.5, need_plot=False, plotname=''):
@@ -168,7 +220,7 @@ class RhythmRecognition():
             ax.set_title(plotname)
             plt.show()
 
-        frames = splitFrame(data, self.sr, frameTime, overlap)
+        frames = splitFrame(data, self.T, frameTime, overlap)
 
         # 计算帧间相似性
         matrix = computeSimilarity(frames)
@@ -188,9 +240,10 @@ if __name__ == '__main__':
 
     instant = testrr.instantaneousPower(need_plot=True)
     nae = testrr.NAEsignal(need_plot=True)
-    stress = testrr.streeSignal()
-    print("瞬时功率 {}，NAE {}， 重音".format(instant.shape, nae.shape))
+    stress = testrr.streeSignal(need_plot=True)
+    print("瞬时功率 {}，NAE {}， 重音 {}".format(instant.shape, nae.shape, stress.shape))
 
     instant_beats = testrr.rhythmSpectum(instant, need_plot=True, plotname='Instant power')
     nae_beats = testrr.rhythmSpectum(nae, need_plot=True, plotname='NAE')
+    stess_beats = testrr.rhythmSpectum(stress, need_plot=True, plotname='Stess Signal')
 
