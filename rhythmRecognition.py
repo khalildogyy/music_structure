@@ -21,10 +21,20 @@ def butter_lowpass_filter(data, cutoff, fs, order=5):
     y = lfilter(b, a, data)
     return y
 
-def splitFrame(data, frameindex):
+# 分帧
+def splitFrame(data, fs, frameTime, overlap):
+    framelength = int(fs / (1000 / frameTime))
+    overlength = int(framelength * overlap)
+
+    frameindex = []
+    for i in range(0, data.shape[0], overlength):
+        if i + framelength > data.shape[0]:
+            break
+        frameindex.append([i, i + framelength])
+
     dataFrames = []
     for fi in frameindex:
-        dataFrames.append(data[fi[0] : fi[1]])
+        dataFrames.append(data[fi[0]: fi[1]])
     dataFrames = np.array(dataFrames, dtype=np.float32)
     return dataFrames
 
@@ -147,7 +157,7 @@ class RhythmRecognition():
         return 0
 
     """ 计算拍谱 """
-    def rhythmSpectum(self, frameTime=40, overlap=0.5, need_plot=False):
+    def rhythmSpectum(self, data, frameTime=40, overlap=0.5, need_plot=False, plotname=''):
         # 画出拍谱图
         def plot(beats, T):
             t = np.linspace(0, T, len(beats), endpoint=False)
@@ -155,32 +165,17 @@ class RhythmRecognition():
             ax.plot(t, beats, label='Beat curve')
             ax.axis('tight')
             ax.set_xlabel('Time [sec]')
+            ax.set_title(plotname)
             plt.show()
 
-        instant = self.instantaneousPower(need_plot=True)
-        nae = self.NAEsignal(need_plot=True)
-        print("瞬时功率 {}，NAE {}， 重音".format(instant.shape, nae.shape))
-
-        framelength = int(self.sr / (1000 / frameTime))
-        overlength = int(framelength * overlap)
-
-        # 分帧
-        framindex = []
-        for i in range(0, instant.shape[0], overlength):
-            if i+framelength > instant.shape[0]:
-                break
-            framindex.append([i, i+framelength])
-
-        instant_frames = splitFrame(instant, framindex)
-        nae_frames = splitFrame(nae, framindex)
-        print("分帧之后： ", instant_frames.shape, nae_frames.shape)
+        frames = splitFrame(data, self.sr, frameTime, overlap)
 
         # 计算帧间相似性
-        instant_matrix = computeSimilarity(instant_frames)
-        print(instant_matrix.shape)
+        matrix = computeSimilarity(frames)
+        print("分帧之后： {}, 相似矩阵 {}".format(frames.shape, matrix.shape))
 
         # 计算拍谱
-        beats = np.cumsum(instant_matrix, axis=1)
+        beats = np.cumsum(matrix, axis=1)
 
         # plot
         if need_plot:
@@ -190,4 +185,12 @@ class RhythmRecognition():
 
 if __name__ == '__main__':
     testrr = RhythmRecognition(filepath='./data/MyDownfall.mp3')
-    beats = testrr.rhythmSpectum(need_plot=True)
+
+    instant = testrr.instantaneousPower(need_plot=True)
+    nae = testrr.NAEsignal(need_plot=True)
+    stress = testrr.streeSignal()
+    print("瞬时功率 {}，NAE {}， 重音".format(instant.shape, nae.shape))
+
+    instant_beats = testrr.rhythmSpectum(instant, need_plot=True, plotname='Instant power')
+    nae_beats = testrr.rhythmSpectum(nae, need_plot=True, plotname='NAE')
+
