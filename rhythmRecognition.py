@@ -96,17 +96,19 @@ class RhythmRecognition():
     def NAEsignal(self, need_plot=False):
         # 画出瞬时功率图
         def plot(times, nae, onset_frames, T):
-            # plot
             fig, ax = plt.subplots(figsize=(6, 5))
             t1 = np.linspace(0, T, nae.shape[0], endpoint=False)
-            plt.plot(t1, nae, label='Onset strength')
-            plt.vlines(times[onset_frames], 0, NAE.max(), color='r', alpha=0.9, linestyle='--', label='Onsets')
-            plt.axis('tight')
-            plt.legend(frameon=True, framealpha=0.75)
+            ax.plot(t1, nae, label='Onset strength')
+            ax.vlines(times[onset_frames], 0, NAE.max(), color='r', alpha=0.9, linestyle='--', label='Onsets')
+            ax.set_xlabel('Time [sec]')
+            ax.axis('tight')
+            ax.legend(frameon=True, framealpha=0.75)
             plt.show()
 
         # 瞬时功率
         square = self.instantaneousPower()
+
+        # 获取开始强度点
         o_envs = librosa.onset.onset_strength(self.data, sr=self.sr)
         times = librosa.frames_to_time(np.arange(o_envs.shape[0]), sr=self.sr)
 
@@ -129,7 +131,7 @@ class RhythmRecognition():
                 tempnae.append(np.sum(temp[j:]))
             NAE += tempnae
 
-        NAE.append(o_envs[-1])
+        NAE.append(square[-1])
         NAE = np.array(NAE)
 
         if need_plot:
@@ -138,19 +140,29 @@ class RhythmRecognition():
         return NAE
 
     """ 重音信号 """
-    def streeSignal(self, frame=23, overlap=0.5):
-        framelength = int(self.sr / (1000 / frame))
+    def streeSignal(self, frameTime=23, overlap=0.5):
+        framelength = int(self.sr / (1000 / frameTime))
         overlength = int(framelength * overlap)
 
         return 0
 
     """ 计算拍谱 """
-    def rhythmSpectum(self, frame=40, overlap=0.5):
+    def rhythmSpectum(self, frameTime=40, overlap=0.5, need_plot=False):
+        # 画出拍谱图
+        def plot(beats, T):
+            t = np.linspace(0, T, len(beats), endpoint=False)
+            fig, ax = plt.subplots(figsize=(6, 5))
+            ax.plot(t, beats, label='Beat curve')
+            ax.axis('tight')
+            ax.set_xlabel('Time [sec]')
+            ax.legend(frameon=True, framealpha=0.75)
+            plt.show()
+
         instant = self.instantaneousPower(need_plot=True)
         nae = self.NAEsignal(need_plot=True)
-        print(instant.shape, nae.shape)
+        print("瞬时功率 {}，NAE {}， 重音".format(instant.shape, nae.shape))
 
-        framelength = int(self.sr / (1000 / frame))
+        framelength = int(self.sr / (1000 / frameTime))
         overlength = int(framelength * overlap)
 
         # 分帧
@@ -162,30 +174,27 @@ class RhythmRecognition():
 
         instant_frames = splitFrame(instant, framindex)
         nae_frames = splitFrame(nae, framindex)
-        print(instant_frames.shape, nae_frames.shape)
+        print("分帧之后： ", instant_frames.shape, nae_frames.shape)
 
         # 计算帧间相似性
-        instant_matrix = computeSimilarity(instant_frames)
+        instant_matrix = computeSimilarity(nae_frames)
         print(instant_matrix.shape)
 
         # 计算拍谱
+        framesnum = instant_matrix.shape[0]
         beats = []
         for i in range(instant_matrix.shape[0]):
-            beats.append(instant_matrix[instant_matrix.shape[0]-1-i, i])
-
-        # beats = np.cumsum(beats)
+            if framesnum-1-i <= i:
+                break
+            beats.append(instant_matrix[framesnum-1-i, i])
+        beats = np.array(beats, dtype=np.float32)
 
         # plot
-        t = np.linspace(0, 20, len(beats), endpoint=False)
-        fig, ax = plt.subplots(figsize=(6, 5))
-        plt.plot(t, beats, label='Beat curve')
-        plt.axis('tight')
-        plt.legend(frameon=True, framealpha=0.75)
-        plt.show()
+        if need_plot:
+            plot(beats, self.T)
 
         return beats
 
 if __name__ == '__main__':
     testrr = RhythmRecognition(filepath='./data/MyDownfall.mp3')
-    beats = testrr.rhythmSpectum()
-    print(beats)
+    beats = testrr.rhythmSpectum(need_plot=True)
