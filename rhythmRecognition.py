@@ -108,7 +108,7 @@ class RhythmRecognition():
         def plot(times, nae, onset_frames, T):
             fig, ax = plt.subplots(figsize=(6, 5))
             t1 = np.linspace(0, T, nae.shape[0], endpoint=False)
-            ax.plot(t1, nae, label='Onset strength')
+            ax.plot(t1, nae, label='NAE')
             ax.vlines(times[onset_frames], 0, NAE.max(), color='r', alpha=0.9, linestyle='--', label='Onsets')
             ax.set_xlabel('Time [sec]')
             ax.axis('tight')
@@ -186,7 +186,7 @@ class RhythmRecognition():
         frames_mu = np.log(1 + mu * frames_dft) / np.log(1 + mu)
 
         # 截止频率为10Hz的6阶巴特沃兹滤波器 平滑
-        smooth_frames = butter_lowpass_filter(frames_mu, cutoff=10000, fs=self.sr, order=6)
+        smooth_frames = butter_lowpass_filter(frames_mu, cutoff=10000, fs=self.sr, order=8)
 
         # 差分
         frames_diff = np.diff(smooth_frames, axis=1)
@@ -196,7 +196,7 @@ class RhythmRecognition():
         frames_halfwave = np.concatenate([np.zeros([frames_halfwave.shape[0], 1]), frames_halfwave], axis=1)
 
         # 获得加权信号
-        lamda = 0.5
+        lamda = 0.8
         frames_weight = frames_halfwave + lamda * smooth_frames
 
         # 获得重音信号
