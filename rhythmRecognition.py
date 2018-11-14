@@ -155,7 +155,6 @@ class RhythmRecognition():
             ax.plot(t, beats, label='Beat curve')
             ax.axis('tight')
             ax.set_xlabel('Time [sec]')
-            ax.legend(frameon=True, framealpha=0.75)
             plt.show()
 
         instant = self.instantaneousPower(need_plot=True)
@@ -177,17 +176,11 @@ class RhythmRecognition():
         print("分帧之后： ", instant_frames.shape, nae_frames.shape)
 
         # 计算帧间相似性
-        instant_matrix = computeSimilarity(nae_frames)
+        instant_matrix = computeSimilarity(instant_frames)
         print(instant_matrix.shape)
 
         # 计算拍谱
-        framesnum = instant_matrix.shape[0]
-        beats = []
-        for i in range(instant_matrix.shape[0]):
-            if framesnum-1-i <= i:
-                break
-            beats.append(instant_matrix[framesnum-1-i, i])
-        beats = np.array(beats, dtype=np.float32)
+        beats = np.cumsum(instant_matrix, axis=1)
 
         # plot
         if need_plot:
