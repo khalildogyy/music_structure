@@ -46,7 +46,7 @@ def computeSimilarity(data):
     return similarMatrix
 
 class RhythmRecognition():
-    def __init__(self, filepath, duration=20):
+    def __init__(self, filepath, duration=319):
         self.filepath = filepath
         self.data, self.sr = librosa.load(self.filepath, sr=None, duration=duration)
         self.T = duration
@@ -236,14 +236,14 @@ class RhythmRecognition():
         return beats
 
 if __name__ == '__main__':
-    testrr = RhythmRecognition(filepath='./data/MyDownfall.mp3')
+    testrr = RhythmRecognition(filepath='./data/石榴石.mp3')
 
     instant = testrr.instantaneousPower(need_plot=True)
     nae = testrr.NAEsignal(need_plot=True)
     stress = testrr.streeSignal(need_plot=True)
     print("瞬时功率 {}，NAE {}， 重音 {}".format(instant.shape, nae.shape, stress.shape))
 
-    instant_beats = testrr.rhythmSpectum(instant, need_plot=True, plotname='Instant power')
-    nae_beats = testrr.rhythmSpectum(nae, need_plot=True, plotname='NAE')
-    stess_beats = testrr.rhythmSpectum(stress, need_plot=True, plotname='Stess Signal')
+    # instant_beats = testrr.rhythmSpectum(instant, need_plot=True, plotname='Instant power')
+    # nae_beats = testrr.rhythmSpectum(nae, need_plot=True, plotname='NAE')
+    # stess_beats = testrr.rhythmSpectum(stress, need_plot=True, plotname='Stess Signal')
 
