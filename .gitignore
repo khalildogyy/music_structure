@@ -23,7 +23,8 @@ __pycache__/
 
 # pycharm files
 /.idea
-/data
+/data/
+/notebook/model/
 
 # Flask stuff:
 instance/
